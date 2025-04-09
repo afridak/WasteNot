@@ -63,7 +63,7 @@ public class ManageStatistics extends Application {
         layout.setStyle("-fx-background-color: #F1F8E9;");
 
         // Scene setup
-        Scene scene = new Scene(layout, 600, 400);
+        Scene scene = new Scene(layout, 700, 400);
         primaryStage.setScene(scene);
         primaryStage.show();
     }

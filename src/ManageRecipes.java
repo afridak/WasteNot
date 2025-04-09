@@ -59,6 +59,13 @@ public class ManageRecipes extends Application {
         primaryStage.setScene(scene);
         primaryStage.setTitle("Admin - Manage Recipes");
         primaryStage.show();
+
+        //Listener to load recipe details when selected
+        recipeListView.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                loadRecipeDetails(newValue);
+            }
+        });
     }
 
     private void connectDatabase() {
@@ -78,6 +85,23 @@ public class ManageRecipes extends Application {
             ResultSet rs = statement.executeQuery("SELECT name FROM recipes");
             while (rs.next()) {
                 recipeListView.getItems().add(rs.getString("name"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadRecipeDetails(String recipeName) {
+        try {
+            PreparedStatement ps = connection.prepareStatement("SELECT * FROM recipes WHERE name = ?");
+            ps.setString(1, recipeName);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                // Populate fields with the recipe details
+                nameField.setText(rs.getString("name"));
+                ingredientsField.setText(rs.getString("ingredients"));
+                instructionsField.setText(rs.getString("instructions"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -165,4 +189,5 @@ public class ManageRecipes extends Application {
         launch(args);
     }
 }
+
 

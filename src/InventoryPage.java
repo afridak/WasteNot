@@ -179,4 +179,3 @@ public class InventoryPage extends Application {
         launch(args);
     }
 }
-

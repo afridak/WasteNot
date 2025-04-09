@@ -9,6 +9,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+import java.sql.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -18,6 +19,7 @@ public class ReminderPage extends Application {
     private ObservableList<InventoryItem> inventoryItems = FXCollections.observableArrayList();
     private TableView<InventoryItem> tableView;
     private ComboBox<String> categoryFilter;
+    private Connection connection;
 
     @Override
     public void start(Stage primaryStage) {
@@ -59,37 +61,46 @@ public class ReminderPage extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
 
+        connectDatabase();
         loadInventoryItems(); // Load initial inventory items
     }
 
-    private void loadInventoryItems() {
-        // Sample data (Replace with actual inventory fetching)
-        inventoryItems.add(new InventoryItem("Milk", "Dairy", "2025-03-30"));
-        inventoryItems.add(new InventoryItem("Apples", "Fruit", "2025-03-25"));
-        inventoryItems.add(new InventoryItem("Chicken", "Meat", "2025-03-22"));
-        inventoryItems.add(new InventoryItem("Bread", "Bakery", "2025-03-28"));
-        inventoryItems.add(new InventoryItem("Cheese", "Dairy", "2025-03-21"));
+    private void connectDatabase() {
+        try {
+            connection = DriverManager.getConnection("jdbc:sqlite:inventory.db");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
-        updateTable();
+    private void loadInventoryItems() {
+        inventoryItems.clear();
+        try {
+            Statement statement = connection.createStatement();
+            ResultSet rs = statement.executeQuery("SELECT name, category, expiry_date FROM inventory");
+            LocalDate today = LocalDate.now();
+            LocalDate twoWeeksLater = today.plusWeeks(2);
+
+            while (rs.next()) {
+                String name = rs.getString("name");
+                String category = rs.getString("category");
+                String expiryDate = rs.getString("expiry_date");
+                LocalDate expiry = LocalDate.parse(expiryDate, DateTimeFormatter.ISO_DATE);
+
+                if (!expiry.isBefore(today) && !expiry.isAfter(twoWeeksLater)) {
+                    inventoryItems.add(new InventoryItem(name, category, expiryDate));
+                }
+            }
+            updateTable();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     private void updateTable() {
-        LocalDate today = LocalDate.now();
-        LocalDate twoWeeksLater = today.plusWeeks(2);
-
-        // Filter only items expiring within two weeks
-        List<InventoryItem> filteredItems = inventoryItems.stream()
-                .filter(item -> {
-                    LocalDate expiryDate = LocalDate.parse(item.getExpiryDate(), DateTimeFormatter.ISO_DATE);
-                    return !expiryDate.isBefore(today) && !expiryDate.isAfter(twoWeeksLater);
-                })
-                .collect(Collectors.toList());
-
-        tableView.setItems(FXCollections.observableArrayList(filteredItems));
-
-        // Update category dropdown
+        tableView.setItems(FXCollections.observableArrayList(inventoryItems));
         categoryFilter.setItems(FXCollections.observableArrayList(
-                filteredItems.stream().map(InventoryItem::getCategory).distinct().collect(Collectors.toList())
+                inventoryItems.stream().map(InventoryItem::getCategory).distinct().collect(Collectors.toList())
         ));
     }
 
@@ -109,4 +120,5 @@ public class ReminderPage extends Application {
         launch(args);
     }
 }
+
 
